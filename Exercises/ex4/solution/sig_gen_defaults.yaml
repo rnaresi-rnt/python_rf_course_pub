@@ -1,0 +1,8 @@
+Fc:   222.0     # MHz float
+IP:   10.0.0.6  # IP address of the signal generator
+Pout:     -80   # dBm int
+PoutMax:  0     # dBm int
+PoutMin: -100   # dBm int
+ArbMaxFs:  30.0 # MHz float
+MultiToneBw:  1.0 # MHz float
+MultiToneNtones:  2 # int
