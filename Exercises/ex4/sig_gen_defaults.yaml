@@ -3,5 +3,5 @@ IP:   10.0.0.6  # IP address of the signal generator
 Pout:     -80   # dBm int
 PoutMax:  0     # dBm int
 PoutMin: -100   # dBm int
-#EX4: Add the following parameters - MultiToneBw (float), MultiToneNtones (int), ArbMaxFs (float)
+#EX4: Add the following parameters - MultiToneBw (float) - 1.0, MultiToneNtones - 2 (int), ArbMaxFs 30.0 (float)
 

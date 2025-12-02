@@ -8,9 +8,9 @@ import yaml
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.uic import loadUi
 
-# EX4: import h_gui and multitone from the course repository (slide 2-7)
+# EX4: import h_gui from the python_rf_course_utils.qt directory (slide 2-7)
 
-# EX4: the base directory for the course is python_rf_course (from python_rf_course. ... import ...)
+# EX4: import the multitone module from the python_rf_course_utils.arb directory (slide 2-7)
 
 def is_valid_ip(ip:str) -> bool:
     # Regular expression pattern for matching IP address
@@ -39,7 +39,7 @@ class LabDemoMxgControl(QMainWindow):
             Load                = h_gui(self.actionLoad         , self.cb_load              ))
         # EX4: Add the new widgets to the h_gui dictionary use the following callbacks:
         # EX4:  cb_multitone_update (use the same callback for the BW and the Ntones)
-        # EX4:  cb_multitone_on_off (slide 3-45 example 210)
+        # EX4:  cb_multitone_on_off (slide 3-46 example 210)
 
         # Create a Resource Manager object
         self.rm         = pyvisa.ResourceManager('@py') # EX4: make sure - '@py' is for the PyVISA-py backend
@@ -55,13 +55,18 @@ class LabDemoMxgControl(QMainWindow):
 
         self.file_name = "last.yaml"
         try:
-            self.h_gui['Load'].callback()  # self.cb_load
-        except FileNotFoundError:
+            self.h_gui['Load'].callback()  # self.cb_load - override the parameters from last.yaml by calling the cb function
+        except FileNotFoundError: # File wasn't found
             print("No last.yaml file found")
 
-        self.h_gui['Save'].emit() #  self.cb_save
+        self.h_gui['Save'].emit() #  self.cb_save - save the existing parameters to last.yaml
 
-    def sig_gen_write(self, cmd:str):
+    def sig_gen_write(self, cmd):
+        """
+        Accessor method to write to the sig_gen object if it exists
+        Args:
+            cmd: SCPI command to write
+        """
         if self.sig_gen is not None:
             self.sig_gen.write(cmd)
 
@@ -76,10 +81,10 @@ class LabDemoMxgControl(QMainWindow):
                 self.sig_gen = self.rm.open_resource(f"TCPIP0::{ip}::inst0::INSTR")
                 print(f"Connected to {ip}")
                 # Read the signal generator status and update the GUI (RF On/Off, Modulation On/Off,Pout and Fc)
-                # EX4: Query the signal generator IDN string (Slide 2-54 ex 109)
+                # EX4: Query the signal generator IDN string (Slide 2-62 ex 109)
                 # EX4: Note the fields are <company_name>, <model_number>, <serial_number>,<firmware_revision>
                 # EX4: split and join the fields without the firmware revision seperated by a comma
-                # EX4: Update the window title with the joined string (Page 2-33 ex 200)
+                # EX4: Update the window title with the joined string (Page 3-34 ex 200)
 
                 # Query RF On/Off mode
                 rf_state            = bool(int(self.sig_gen.query(":OUTPUT:STATE?"      ).strip()))
@@ -167,12 +172,13 @@ class LabDemoMxgControl(QMainWindow):
             if key in self.h_gui:
                 self.Params[key] = self.h_gui[key].get_val()
 
+        # Write to YAML file
         with open(self.file_name, "w") as f:
             yaml.dump(self.Params, f)
 
     def cb_load(self):
         print("Load")
-        try:
+        try: # Read from YAML file
             with open(self.file_name, "r") as f:
                 self.Params = yaml.safe_load(f)
         except FileNotFoundError:
@@ -184,47 +190,60 @@ class LabDemoMxgControl(QMainWindow):
             if key in self.h_gui:
                 self.h_gui[key].set_val(value, is_callback=True)
 
-        # Additional configuration parameters
+        # Additional configuration parameters through non h_gui mapped widget methods
         self.h_gui['Pout'].call_widget_method('setMaximum',False,self.Params["PoutMax"])
         self.h_gui['Pout'].call_widget_method('setMinimum',False,self.Params["PoutMin"])
 
     # Callback function for the MultiTone On/Off button
     def cb_multitone_on_off(self):
-        # EX4: Implement the MultiTone On/Off button callback function
-        # EX4: if the button is checked, create an ARB object and configure it (slide 3-36 example 203)
-        # EX4: if...
-            # EX4: use try and except to catch any exceptions
-                # EX4: Get the MXG IP from the h_gui using get_val() method (slide 3-46 example 210)
+        """
+        Callback function for the MultiTone On/Off button
+        Actions:
+        - When the button is checked (On):
+            - Create an ARB object
+            - Configure the ARB object
+            - Clear errors
+            - Set ALC to Off
+            - Call the MultiToneBw callback function to update the waveform
+            - Set the Mod_On_Off and RF_On_Off buttons to On
+        - When the button is unchecked (Off):
+            - Stop and delete the ARB object
+            - Set the Mod_On_Off button to Off
+        """
 
-                # EX4: Create an ARB object using the VSG class from the arb module (slide 3-51 example 219)
+        # EX4: if the button is checked, create an ARB object and configure it (slide 3-37 example 203)
+            # EX4: use try and except to catch any exceptions
+                # EX4: Get the MXG IP from the h_gui using get_val() method (slide 3-47 example 210)
+
+                # EX4: Create an ARB object using the VSG class from the arb module (slide 3-52 example 219)
 
                 # EX4: Get the maximal ARB Fs from the self.Params dictionary
 
-                # EX4: Configure the ARB object using the configure method (slide 3-51 example 219)
+                # EX4: Configure the ARB object using the configure method (slide 3-52 example 219)
 
                 # EX4: Clear Errors CLS
 
-                # EX4: Set the Auto Level Control to Off (ALC) (slide 3-51 example 219)
-                # EX4: Note - It is critical not to use boolean types for this SCPI function
+                # EX4: Set the Auto Level Control to Off (ALC) (slide 3-52 example 219)
+                # Note - It is critical not to use boolean types for this arb function !!! (e.g. write 0 and not False, 1 and not True)
 
-                # EX4: CALL the update function cb_multitone_update (the same used for the callback)
+                # EX4: CALL the update function cb_multitone_update (the same used for the callback, to be implemented next)
 
                 # Set GUI MOD to On
-                self.h_gui['Mod_On_Off'].set_val(True, is_callback=False)
-                self.h_gui['RF_On_Off' ].set_val(True, is_callback=False)
+        self.h_gui['Mod_On_Off'].set_val(True, is_callback=False) # The callback is false in order to avoid sending the command to the sig_gen again
+        self.h_gui['RF_On_Off' ].set_val(True, is_callback=False) # This was carried out in the cb_multitone_update function
 
             # EX4: handle the exception
-            # EX4: except Exception as e:
+            # except Exception as e:
 
                 # EX4: Print the exception`
 
                 # EX4: Switch MOD to Off and RF to Off using the set_val method of the h_gui dictionary
-                # EX4: NOTE - the is_callback should be set to True
+                # NOTE - the is_callback should be set to True, because we want the action, not just the GUI update
 
                 # EX4: set the arb_gen to None
 
                 # EX4: Clear Button state use the sender method to get the button object and set it to False
-                # EX4: self.sender().setChecked(False)
+                # ---> self.sender().setChecked(False)
         # EX4: uncomment the else block
         # else:
         #     print("MultiTone Off")
@@ -233,16 +252,27 @@ class LabDemoMxgControl(QMainWindow):
         #         self.arb_gen = None
         #     self.h_gui['Mod_On_Off'].set_val(False, is_callback=False)
 
+        # Now would be a good time to review this entire function and make sure you understand it!
+
     def cb_multitone_update(self):
+        """
+        Callback function for the MultiTone Bandwidth and Number of Tones
+        Sequence of actions:
+        - Print the MultiTone Bandwidth and Number of Tones
+        - If the ARB object is not None:
+            - Generate the MultiTone waveform using the multitone function
+            - Download the waveform to the ARB object
+            - Play the waveform
+        """
         pass
         # EX4: print the input BW and Ntones from the h_gui dictionary
 
         # EX4: if the arb_gen is not None
-            # EX4: calculate the new signal by calling the mutitone function (slide 3-50 example o218)
+            # EX4: calculate the new signal by calling the multitone function (slide 3-51)
             # EX4: Get the bandwidth and Ntones from the h_gui dictionary
             # EX4: get the ARB Fs from the Params dictionary
-            # EX4: change the default Nfft to achieve a frequency resolution of 15kHz
-            # EX4: download it to the ARB generator (using download_wfm) and play it (slide 3-51 example 219)
+            # EX4: change the default Nfft to 2048
+            # EX4: download it to the ARB generator (using download_wfm) and play it (slide 3-52 example 219)
 
 
     def closeEvent(self, event):
